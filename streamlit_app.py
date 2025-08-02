@@ -1,16 +1,16 @@
-import streamlit as st
-import pandas as pd
+import streamlit as st  # streamlit=1.47.1
+import pandas as pd     # pandas=2.3.1
 import os, time
 
-from selenium import webdriver
+from selenium import webdriver  # selenium=4.34.2
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 
 import shutil
-from openpyxl import Workbook, load_workbook
+from openpyxl import Workbook, load_workbook    # openpyxl=3.1.5
 from io import BytesIO
-import xlsxwriter
+import xlsxwriter   # xlsxwriter=3.2.5
 
 #--------------------------------------------------------------
 
@@ -31,13 +31,13 @@ def check_read_file_txt(filetxt):
 @st.cache_data
 def download_data_smarts(regions):
     #xoa thu muc downloads va tao lai de chi chua 2 file du lieu
-    folder_path_cu = 'downloads'
+    folder_path_cu = "" #'downloads'
     # Xóa thư mục nếu tồn tại
-    if os.path.exists(folder_path_cu):
-        shutil.rmtree(folder_path_cu)  # Xóa toàn bộ thư mục và nội dung bên trong
+    #if os.path.exists(folder_path_cu):
+    #    shutil.rmtree(folder_path_cu)  # Xóa toàn bộ thư mục và nội dung bên trong
 
-    download_dir = os.path.abspath("downloads")
-    os.makedirs(download_dir, exist_ok=True)
+    #download_dir = os.path.abspath("downloads")
+    #os.makedirs(download_dir, exist_ok=True)
 
     # ✅ CẤU HÌNH CHROME:
     options = webdriver.ChromeOptions()
@@ -101,17 +101,17 @@ def download_data_smarts(regions):
             driver.execute_script("arguments[0].click();", link_elem)
 
             fname = wait_for_download_and_get_new_file(before)
-            if fname:
+            #if fname:
                 # Tạo tên file chuẩn theo Region + tên file
-                src = os.path.join(download_dir, fname)
-                dst_name = f"{region} - {name}.txt"
-                dst_name = dst_name.replace(" ", "_")  # Nếu muốn
-                dst = os.path.join(download_dir, dst_name)
-                os.rename(src, dst)
-                print(f"✅ File đã lưu: {dst}")
-                lfile_datai.append(f"{dst}")
-            else:
-                print("❌ Không tìm thấy file mới sau khi tải")
+                #src = os.path.join(download_dir, fname)
+                #dst_name = f"{region} - {name}.txt"
+                #dst_name = dst_name.replace(" ", "_")  # Nếu muốn
+                #dst = os.path.join(download_dir, dst_name)
+                #os.rename(src, dst)
+                #print(f"✅ File đã lưu: {dst}")
+                #lfile_datai.append(f"{dst}")
+            #else:
+            #    print("❌ Không tìm thấy file mới sau khi tải")
         except Exception as e:
             print(f"❌ Lỗi khi tải {name} ở Region {region}: {e}")
 
