@@ -274,11 +274,12 @@ def ThucThiPhan_1():
     if LOI == 'LOI':
         st.write('Nếu không đạt, mở trực tiếp trang sau làm theo các bước để tải:')
         st.markdown("1-[Open Page SMARTS](https://smarts.waterboards.ca.gov/smarts/SwPublicUserMenu.xhtml)", unsafe_allow_html=True)
-        st.write('2-Click on “Public User Menu”')
-        st.write('3-Click on “Download NOI Data By Regional Board”')
-        st.write('4-Select your region from the dropdown menu')
-        st.write('5-Click on both “Industrial Application Specific Data” and “Industrial Ad Hoc Reports - Parameter Data”')
-        st.write('6-Data will be downloaded to two separate .txt files, each titled “file”')
+        st.write('2-Click on “Download NOI Data By Regional Board”')
+        st.write('3-Select your region from the dropdown menu')
+        st.write('4-Click on both “Industrial Application Specific Data” and “Industrial Ad Hoc Reports - Parameter Data”')
+        st.write('5-Data will be downloaded to two separate .txt files, each titled “file”')
+        st.write('6-Có thể đổi tên 2 file và chép vào thư mục riêng của bạn.')
+
 #========================= MAIN =====================================================================
 # TIEU DE APP
 st.header('🏷️Trình hỗ trợ quản lý môi trường nước')
