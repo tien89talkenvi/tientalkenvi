@@ -272,7 +272,7 @@ def ThucThiPhan_1():
             LOI='LOI'
             placeholder_1.write('Tai file không đạt!')
     if LOI == 'LOI':
-        st.write('Nếu không đạt, có thể đến trực tiếp trang sau để tải:')
+        st.write('Nếu không đạt, mở trực tiếp trang sau làm theo các bước để tải:')
         st.markdown("1-[Open Page SMARTS](https://smarts.waterboards.ca.gov/smarts/SwPublicUserMenu.xhtml)", unsafe_allow_html=True)
         st.write('2-Click on “Public User Menu”')
         st.write('3-Click on “Download NOI Data By Regional Board”')
