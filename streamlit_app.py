@@ -278,7 +278,7 @@ def ThucThiPhan_1():
         st.write('3-Select your region from the dropdown menu')
         st.write('4-Click on both “Industrial Application Specific Data” and “Industrial Ad Hoc Reports - Parameter Data”')
         st.write('5-Data will be downloaded to two separate .txt files, each titled “file”')
-        st.write('6-Có thể đổi tên 2 file và chép vào thư mục riêng của bạn.')
+        st.write('6-Nên đổi tên 2 file thành Industrial_Application_Specific_Data và Industrial_Ad_Hoc_Reports_-_Parameter_Data rồi chép vào thư mục riêng của bạn để dễ làm việc ở các bước sau.')
 
 #========================= MAIN =====================================================================
 # TIEU DE APP
