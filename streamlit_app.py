@@ -187,6 +187,7 @@ def Ht_CaiMuonXem_0(tepxlsx):
         ascending=[True, True, False]
     )
     #Dua vao xlsx de xem kq sx
+    
     tepxlsxdexem = "Data_Tracker_3-1.xlsx"
     df_sorted.to_excel(tepxlsxdexem, sheet_name='Datanew', index=False)
     os.startfile(tepxlsxdexem)
@@ -231,8 +232,20 @@ def Ht_CaiMuonXem_1(uploaded_file):
                 ws.row_dimensions[row[0].row].hidden = True
 
         # Lưu file mới
-        wb.save("filtered_CS1_new.xlsx")
-        os.startfile("filtered_CS1_new.xlsx")
+        # Ghi vào memory (không ghi ra ổ đĩa)
+        virtual_workbook = BytesIO()
+        wb.save(virtual_workbook)
+
+        st.download_button(
+            label="Tải file Excel",
+            data=virtual_workbook.getvalue(),
+            file_name="data_tracker_1.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        #wb.save("filtered_CS1_new.xlsx")
+        #st.write('filtered_CS1_new.xlsx da co')        
+        #os.startfile("filtered_CS1_new.xlsx")
 
         # Lưu lại và cho phép tải xuống
         #final_output = BytesIO()
@@ -241,7 +254,7 @@ def Ht_CaiMuonXem_1(uploaded_file):
 
         #st.download_button("📥 Tải file đã tô màu", final_output, "T_to_mau.xlsx")
 
-def ThucThiPhan_3():
+def ThucThiPhan_3bo():
     # Bước 1: Upload fle Data_Tracker_New.xlsx
     uploaded_file = st.file_uploader('Upload Data_Tracker_New.xlsx',type=['xlsx'])
     # Bước 2: Nếu có file, test chon header, sau nay bò
@@ -425,9 +438,6 @@ def ThucThiPhan_1():
         st.write('5-Data will be downloaded to two separate .txt files, each titled “file”')
         st.write('6-Nên đổi tên 2 file thành Industrial_Application_Specific_Data và Industrial_Ad_Hoc_Reports_-_Parameter_Data rồi chép vào thư mục riêng của bạn để dễ làm việc ở các bước sau.')
 
-def vote(item):
-    st.write(f"Why is {item} your favorite?")
-    reason = st.text_input("Because...")
 
 #========================= MAIN =====================================================================
 with st.sidebar:
@@ -605,9 +615,17 @@ def Ht_Data_tquat(outputIo):
     ws = wb.active
     # xu li wb, ws o day
     # roi save ra file excel de xem
-    tepsave = "Data_0.xlsx"
-    wb.save(tepsave)
-    os.startfile(tepsave)
+    # Ghi vào memory (không ghi ra ổ đĩa)
+    virtual_workbook = BytesIO()
+    wb.save(virtual_workbook)
+    
+    st.download_button(
+        label="Tải file Excel về xem",
+        data=virtual_workbook.getvalue(),
+        file_name="Data_0.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+ 
     return 
 
 def Ht_Data_sxep(outputIo):
@@ -616,9 +634,15 @@ def Ht_Data_sxep(outputIo):
     ws = wb.active
     # xu li wb, ws o day
     # roi save ra file excel de xem
-    tepsave = "Data_1.xlsx"
-    wb.save(tepsave)
-    os.startfile(tepsave)
+    virtual_workbook = BytesIO()
+    wb.save(virtual_workbook)
+    
+    st.download_button(
+        label="Tải file Excel về xem",
+        data=virtual_workbook.getvalue(),
+        file_name="Data_0.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     return 
 
 def Ht_Data_new(outputIo):
@@ -627,9 +651,15 @@ def Ht_Data_new(outputIo):
     ws = wb.active
     # xu li wb, ws o day
     # roi save ra file excel de xem
-    tepsave = "Data_2.xlsx"
-    wb.save(tepsave)
-    os.startfile(tepsave)
+    virtual_workbook = BytesIO()
+    wb.save(virtual_workbook)
+    
+    st.download_button(
+        label="Tải file Excel về xem",
+        data=virtual_workbook.getvalue(),
+        file_name="Data_0.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     return 
 
 def Ht_Data_old(outputIo):
@@ -638,9 +668,15 @@ def Ht_Data_old(outputIo):
     ws = wb.active
     # xu li wb, ws o day
     # roi save ra file excel de xem
-    tepsave = "Data_3.xlsx"
-    wb.save(tepsave)
-    os.startfile(tepsave)
+    virtual_workbook = BytesIO()
+    wb.save(virtual_workbook)
+    
+    st.download_button(
+        label="Tải file Excel về xem",
+        data=virtual_workbook.getvalue(),
+        file_name="Data_0.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     return 
 
 def Ht_Data_max(outputIo):
@@ -649,9 +685,15 @@ def Ht_Data_max(outputIo):
     ws = wb.active
     # xu li wb, ws o day
     # roi save ra file excel de xem
-    tepsave = "Data_0.xlsx"
-    wb.save(tepsave)
-    os.startfile(tepsave)
+    virtual_workbook = BytesIO()
+    wb.save(virtual_workbook)
+    
+    st.download_button(
+        label="Tải file Excel về xem",
+        data=virtual_workbook.getvalue(),
+        file_name="Data_0.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     return 
 
 
