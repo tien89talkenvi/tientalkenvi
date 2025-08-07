@@ -357,7 +357,7 @@ def Txt_to_data_tracker(df1, df2, df_data):
 # -----------------
 def ThucThiPhan_2():    
     uploaded_files = st.file_uploader(
-        'Upload your files',
+        'Upload 1 lần 3 files '+':red[(nên đặt 3 files này trước trong 1 thư mục)]',
         type=['txt', 'xlsx'],  
         accept_multiple_files=True
     )
@@ -701,7 +701,8 @@ def Ht_Data_max(outputIo):
 
 # Phan tich du lieu---------------------------------------
 st.subheader('✅ III. Analyze the new data', divider=True)
-uploaded_file = st.file_uploader("Tải lên file: Data_Tracker_New.xlsx", type=["xlsx"])
+uploaded_file = st.file_uploader("Tải lên file: " + ":red[Data_Tracker_New.xlsx]", type=["xlsx"])
+         
 
 if uploaded_file:
     # Doc file da tai len de ghi du lieu o sheet Data vao df 
@@ -722,7 +723,7 @@ if uploaded_file:
     }
     # menu chon ham/viec
     viec_chon = st.selectbox(
-        "Chọn hàm xử lí Data với kiểu hiển thị", 
+        ":blue[Chọn hàm xử lí Data với kiểu hiển thị]", 
         (op_listCaiMuonXem.keys()),
         index=None,
         placeholder="Chon hien thi...",
@@ -848,4 +849,5 @@ Tô sáng
 
 # Do thi hoa du lieu
 st.subheader('✅ IV. Visualize the data', divider=True)
-ThucThiPhan_4()
+#ThucThiPhan_4()
+st.write(':red[Trình đang viết thử để chạy trên Streamlit Cloud.Chưa xong...]')
