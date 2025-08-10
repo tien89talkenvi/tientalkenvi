@@ -13,6 +13,8 @@ from openpyxl.styles import PatternFill
 from io import BytesIO
 import xlsxwriter   # xlsxwriter=3.2.5
 import tempfile
+from datetime import datetime
+
 #from playwright.sync_api import sync_playwright    #playwright==1.54.0
 #--------------------------------------------------------------
 
@@ -29,7 +31,38 @@ def check_read_file_txt(filetxt):
         except Exception as e:
             print(f"❌ {enc}: {e}")
 
+# Hàm kiểm tra giá trị có phải số hoặc ngày không
+def is_number_or_date(val):
+    if pd.isna(val):  # NaN thì giữ lại
+        return False
+    # Trường hợp là số thật
+    if isinstance(val, (int, float)):
+        return True
+    # Nếu là chuỗi
+    if isinstance(val, str):
+        # Nếu chuỗi toàn số hoặc dạng số thập phân
+        if val.strip().replace('.', '', 1).isdigit():
+            return True
+        # Thử parse sang datetime
+        try:
+            datetime.strptime(val.strip(), '%Y-%m-%d')
+            return True
+        except ValueError:
+            pass
+        try:
+            datetime.strptime(val.strip(), '%d/%m/%Y')
+            return True
+        except ValueError:
+            pass
+        try:
+            datetime.strptime(val.strip(), '%m-%d-%y')
+            return True
+        except ValueError:
+            pass
+    return False
+
 # Cac Ham Cho Phan III --------------------------------------------------
+
 def Ht_Data_tquat(outputIo):
     st.write('Ht_Data_tquat')
     wb = load_workbook(outputIo)
@@ -394,46 +427,125 @@ def Combined_to_data_tracker(uploaded_tracker):
 
 @st.cache_data
 def Txt_to_data_tracker(df1, df2, df_data):
-    fxlsx='Data_Tracker_2Sheet.xlsx'
-    with pd.ExcelWriter(fxlsx, engine="openpyxl") as writer:
+    # tao file excel ao xlsx_ao_chua_3df chua df1, df2, df_data
+    xlsx_ao_chua_3df = BytesIO()
+    with pd.ExcelWriter(xlsx_ao_chua_3df, engine="openpyxl") as writer:
         df1.to_excel(writer, sheet_name="Sheet1", index=False)
         df2.to_excel(writer, sheet_name="Sheet2", index=False)
         df_data.to_excel(writer, sheet_name="Data", index=False)
-    return fxlsx
 
-    #output = BytesIO()
-    #with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-    #    df1.to_excel(writer, sheet_name="Sheet1", index=False)
-    #    df2.to_excel(writer, sheet_name="Sheet2", index=False)
-    #    df_data.to_excel(writer, sheet_name="Data", index=False)
-    #output.seek(0)
-    #return output
+    xlsx_ao_chua_3df.seek(0)
+    return xlsx_ao_chua_3df
+    # tao nut download file tren neu can
+    #st.download_button("📥 Download Data_Tracker_include_3df.xlsx",
+    #    data=xlsx_ao_chua_3df,
+    #    file_name="Data_Tracker_include_3df.xlsx",
+    #    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    #)
+
 # Cac ham Phan II -----------------------------    
-def Xli_P2_0(data_tracker_upload):
-    df = pd.read_excel(data_tracker_upload, sheet_name='Sheet2')
+# ham nay de In Sheet2, Tìm các dòng APP_ID trùng, 
+# rồi xóa các dòng mà STATUS ≠ Active nhưng giữ lại các dòng có STATUS = Active "
+def Xli_P2_0(F_excel_data_ao):
+    F_excel_data_ao.seek(0)  # quay lại đầu BytesIO để đọc
+    dfSheet2 = pd.read_excel(F_excel_data_ao, sheet_name='Sheet2')
     # Tìm APP_ID bị trùng
-    duplicates = df[df.duplicated(subset='APP_ID', keep=False)]
+    duplicates = dfSheet2[dfSheet2.duplicated(subset='APP_ID', keep=False)]
     # Giữ lại dòng trùng có STATUS khác "Active"
     to_delete = duplicates[duplicates['STATUS'] != 'Active']
     # Xoá các dòng này khỏi dataframe gốc (chu y la file excel van y cu)
-    df_cleaned = df.drop(to_delete.index)
+    dfSheet2_cleaned = dfSheet2.drop(to_delete.index)
     # ket qua la cac dong trung APP_ID nhung co STATUS la Active duoc giu lai, con
     # cac dong trung APP_ID nhung co STATUS khac Active thi bi xoa
     # cho hien thi df con lai sau khi da xoa cac to_delete
     # phai hieu df_cleaned la df con lai sau khi da lam sach 
-    st.write(df_cleaned)
-    os.startfile(data_tracker_upload)
-    return
+    #st.write(df_cleaned)
+    #---
+    # Ghi thêm dfnew vào Sheet2 mà không mất Sheet1
+    F_excel_data_ao.seek(0)  # quan trọng: để writer đọc được file hiện tại
+    with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        dfSheet2_cleaned.to_excel(writer, sheet_name="Sheet2", index=False)
+    # Giờ output có cả Sheet1 và Sheet2
+    F_excel_data_ao.seek(0)
+    return F_excel_data_ao
 
-def Xli_P2_1(data_tracker_upload):
-    return
-def Xli_P2_2(data_tracker_upload):
-    return
-def Xli_P2_3(data_tracker_upload):
-    return
-def Xli_P2_4(data_tracker_upload):
-    return
+# ham nay de Delete, move, re-order columns in Sheet2
+def Xli_P2_1(F_excel_data_ao):
+    # set dfSheet2 is dataframe of  Sheet2 in uploaded_f3
+    dfSheet2 = pd.read_excel(F_excel_data_ao, sheet_name='Sheet2')
+    # xoa cac cot AF den AL: 
+    # loai bo cac cot trong [] va tra ve kq dfSheet2_cleaned la data con lai
+    dfSheet2_cleaned = dfSheet2.drop(['RECEIVING_WATER_NAME','INDIRECTLY',
+        'DIRECTLY','CERTIFIER_BY','CERTIFIER_TITLE','CERTIFICATION_DATE',
+        'QUESTION_TMDL_ANSWER'],axis=1)
+    # tiep tuc loai bo cac cot P den AB:
+    dfSheet2_cleaned = dfSheet2_cleaned.drop(['FACILITY_LATITUDE','FACILITY_LONGITUDE',
+    	'FACILITY_COUNTY','FACILITY_CONTACT_FIRST_NAME','FACILITY_CONTACT_LAST_NAME',
+        'FACILITY_TITLE','FACILITY_PHONE','FACILITY_EMAIL',	'FACILITY_TOTAL_SIZE',
+        'FACILITY_TOTAL_SIZE_UNIT',	'FACILITY_AREA_ACTIVITY','FACILITY_AREA_ACTIVITY_UNIT',
+        'PERCENT_OF_SITE_IMPERVIOUSNESS'],axis=1)
+    # tiep tuc loai bo cac cot A,E-H,L:
+    dfSheet2_cleaned = dfSheet2_cleaned.drop(['PERMIT_TYPE','NOI_PROCESSED_DATE',
+        'NOT_EFFECTIVE_DATE','REGION_BOARD','COUNTY', 'FACILITY_ADDRESS_2'],axis=1)
+    # di chuyen cot WDID sang ben trai cot APP_ID
+    cols = list(dfSheet2_cleaned.columns)
+    if 'WDID' in cols and 'APP_ID' in cols:
+        cols.remove('WDID')
+        cols.insert(cols.index('APP_ID'), 'WDID')
+    # tiep tuc di chuyen cot FACILITY_NAME sang ben trai cot OPERATOR_NAME
+    if 'FACILITY_NAME' in cols and 'OPERATOR_NAME' in cols:
+        cols.remove('FACILITY_NAME')
+        cols.insert(cols.index('OPERATOR_NAME'), 'FACILITY_NAME')
+    dfSheet2_cleaned = dfSheet2_cleaned[cols]
+    # cuối cùng phải còn lại là :
+    # WDID	APP_ID	STATUS	FACILITY_NAME	OPERATOR_NAME	FACILITY_ADDRESS	FACILITY_CITY	FACILITY_STATE	FACILITY_ZIP	PRIMARY_SIC	SECONDARY_SIC	TERTIARY_SIC
 
+    # Ghi cap nhat Sheet2
+    F_excel_data_ao.seek(0)  # quan trọng: để writer đọc được file hiện tại
+    with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        dfSheet2_cleaned.to_excel(writer, sheet_name="Sheet2", index=False)
+    F_excel_data_ao.seek(0)
+    return F_excel_data_ao
+
+# ham nay de In Sheet1, delete all rows duplicated and rows showing '4 56' in WDID
+def Xli_P2_2(F_excel_data_ao):
+    dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name='Sheet1')
+    # drop all duplicated row
+    dfSheet1_cleaned = dfSheet1.drop_duplicates()
+    # xóa các dòng mà cột 'WDID' chứa chính xác chuỗi "4 56", còn lại các dòng ['WDID'] != '4 56'
+    dfSheet1_cleaned = dfSheet1_cleaned[dfSheet1_cleaned['WDID'] != '4 56']
+    # Delete all columns not in your tracker (columns A, J, K, U, X, and Y)
+    dfSheet1_cleaned = dfSheet1_cleaned.drop(['PERMIT_TYPE', 'MONITORING_LATITUDE', 
+        'MONITORING_LONGITUDE', 'ANALYTICAL_METHOD', 'DISCHARGE_END_DATE',	
+        'DISCHARGE_END_TIME'],axis=1)
+    #After deleting these columns, Sheet1 columns should look like the following: 
+    # A – WDID; B – App ID; C – Status; D – Facility Name; E – Operator Name; F –Address; G – City; H – State; I – Zip; J – Primary SIC; K – Secondary SIC; L – Tertiary SIC
+    # Sheet1 khong co STATUS, vay phai nhu ben phai day:  WDID	APP_ID	REPORTING_YEAR	REPORT_ID	EVENT_TYPE	MONITORING_LOCATION_NAME	MONITORING_LOCATION_TYPE	MONITOR_LOCATION_DESCRIPTION	SAMPLE_ID	SAMPLE_DATE	SAMPLE_TIME	DISCHARGE_START_DATE	DISCHARGE_START_TIME	PARAMETER	RESULT_QUALIFIER	RESULT	UNITS	MDL	RL	CERTIFIER_NAME	CERTIFIED_DATE
+
+    # Ghi cap nhat Sheet2
+    F_excel_data_ao.seek(0)  # quan trọng: để writer đọc được file hiện tại
+    with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        dfSheet1_cleaned.to_excel(writer, sheet_name="Sheet1", index=False)
+    F_excel_data_ao.seek(0)
+    return F_excel_data_ao
+
+# Filter Sheet1 for only new sample data
+def Xli_P2_3(F_excel_data_ao):
+    dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet1")  # chứa cột APP_ID
+    dfData = pd.read_excel(F_excel_data_ao, sheet_name="Data")  # chứa cột O và P
+
+    # Giống =VLOOKUP(J2, Data!O:P, 2, FALSE)
+    lookup_dict = pd.Series(dfData['PP'].values, index=dfData['OO']).to_dict()
+    # Tìm vị trí (chỉ số) của cột 'APP_ID' trong Sheet1
+    idx = dfSheet1.columns.get_loc('APP_ID')
+    # Chèn cột mới 'VLOOKUP' vào trước 'APP_ID'
+    dfSheet1.insert(loc=idx, column='VLOOKUP', value=dfSheet1['SAMPLE_DATE'].map(lookup_dict))
+    # cột 'SAMPLE_DATE' là cột 'J' trong công thức =VLOOKUP(J2, Data!O:P, 2, FALSE
+
+    # Xóa (lọc bỏ) tất cả các hàng có số trong cột 'VLOOKUP' 
+    dfSheet1 = dfSheet1[~dfSheet1['VLOOKUP'].apply(is_number_or_date)]
+    st.write(dfSheet1)
+    return 
 
 #-------------------
 def ThucThiPhan_1():
@@ -483,7 +595,7 @@ st.header('🏷️Trình hỗ trợ quản lý môi trường nước')
 
 # Phan sider ben trai ---------------------------------------------------------------------------
 with st.sidebar:
-    st.header('Lập trình theo tài liệu này:')
+    st.header('🔎 Documents used as a basis for writing this program')
     # Đọc nội dung file Markdown
     with open("hd-lam-app-cho-thong.md", "r", encoding="utf-8") as f:
         md_content = f.read()
@@ -496,7 +608,8 @@ ThucThiPhan_1()
 
 # II Them data moi vao trinh theo doi -------------------------------------------------------------
 st.subheader('✅ II. Add the new data to your tracker', divider=True)
-# Upload 3 files
+# Add the new data to your tracker 
+# - Upload 3 files
 uploaded_files = st.file_uploader(
     'Upload 1 lần 3 files '+':red[(nên đặt 3 files này trước trong 1 thư mục)]',
     type=['txt', 'xlsx'],  
@@ -513,34 +626,122 @@ if uploaded_files and len(uploaded_files) == 3:
         try:
             df1 = pd.read_csv(uploaded_f1, sep='\t', encoding='cp1252')
             df2 = pd.read_csv(uploaded_f2, sep='\t', encoding='cp1252')
-            df_data = pd.read_excel(uploaded_f3, sheet_name="Data")  # Chỉ đọc sheet "Data"
+            #dfData = pd.read_excel(uploaded_f3, sheet_name="Data")  # Chỉ đọc sheet "Data"
         except Exception as e:
             st.error(f"⚠️ Lỗi khi đọc file: {e}")
             st.stop()
-        # Dua 2 txt vao excel Data_Tracker.xlsx tu 3 file tai len
-        # va tra ve file ao data_tracker_upload da chua them 2 txt   
-        data_tracker_upload = Txt_to_data_tracker(df1, df2,df_data)
+        #---
+        # Đọc file Excel đã upload
+        excel_data = uploaded_f3.read()
+
+        # Ghi DataFrame TXT vào file Excel đã upload
+        F_excel_data_ao = BytesIO()
+        with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl") as writer:
+            # Ghi lại các sheet cũ của file Excel gốc
+            original_excel = pd.ExcelFile(BytesIO(excel_data))
+            for sheet_name in original_excel.sheet_names:
+                df_old = pd.read_excel(original_excel, sheet_name=sheet_name)
+                df_old.to_excel(writer, sheet_name=sheet_name, index=False)
+            # Thêm / Ghi đè sheet "Sheet1" bằng dữ liệu từ file TXT
+            df1.to_excel(writer, sheet_name="Sheet1", index=False)
+            df2.to_excel(writer, sheet_name="Sheet2", index=False)
+
+        # 3. Tạo nút tải xuống
+        st.download_button(
+            label="📥 Tải file Excel (Data_tracker_add2sheet.xlsx)",
+            data=F_excel_data_ao.getvalue(),
+            file_name="Data_tracker_add2sheet.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        #--------------------------------------
+        st.write(":red[➡️ Chuẩn hóa Sheet2:]")
+        checkbox0 = st.checkbox("📌0. Xóa các dòng mà STATUS ≠ 'Active' trong các dòng có APP_ID trùng lặp in Sheet2", key='CB0')
+        if checkbox0:
+            # tra ve kq la file ao da update cung ten F_excel_data_ao 
+            F_excel_data_ao = Xli_P2_0(F_excel_data_ao) 
+            st.write(':green[Xli_P2_0 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_0.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_0.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        checkbox1 = st.checkbox("📌1. Delete, move, re-order columns in Sheet2", key='CB1')
+        if checkbox0 and checkbox1:
+            F_excel_data_ao = Xli_P2_1(F_excel_data_ao)
+            st.write(':green[Xli_P2_1 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_1.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_1.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        checkbox2 = st.checkbox("📌2. Delete all rows duplicated and rows showing '4 56' in WDID in Sheet1", key='CB2')
+        if checkbox0 and checkbox1 and checkbox2:
+            F_excel_data_ao = Xli_P2_2(F_excel_data_ao)
+            st.write(':green[Xli_P2_2 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_2.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_2.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        checkbox3 = st.checkbox("📌3. Filter Sheet1 for only new sample data", key='CB3')
+        if checkbox0 and checkbox1 and checkbox2:
+            Xli_P2_3(F_excel_data_ao)
+            st.write(':green[Xli_P2_3 finished.]')
+
+
+        tam = '''
+        
+        # Dua 2 txt vao excel ao, tra ve ten file ao la xlsx_ao_chua_3df
+
+        xlsx_ao_chua_3df = Txt_to_data_tracker(df1, df2, df_data)
+        
+        # chay ham xoa cac dòng APP_ID trùng, va xóa các dòng mà STATUS ≠ Active nhưng giữ lại các dòng có STATUS = Active 
+        # roi tra ve file ao da cap nhat cung ten xlsx_ao_chua_3df
+        xlsx_ao_chua_3df = Xli_P2_0(xlsx_ao_chua_3df)
+
+        #st.write(xlsx_ao_chua_3df)
+        # tao file download
+        st.download_button("📥 Download Updated_Data_Tracker.xlsx",
+            data=xlsx_ao_chua_3df,
+            file_name="Updated_Data_Tracker.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+
+
         #---
         # lap menu cac ham xu li tung buoc tep  data_tracker_upload
         op_listCacBuocP2 = {
-            "0).Tìm các dòng APP_ID trùng, rồi xóa các dòng mà STATUS bằng Active nhưng giữ lại các dòng có STATUS khác Active ": Xli_P2_0, 
-            "1). Sắp xếp theo 3 cột": Xli_P2_1,
-            "2). Cột OLD/NEW có giá trị new": Xli_P2_2,
+            # II : 2,3,4,5,6,7
+            "0). In Sheet2, Tìm các dòng APP_ID trùng, rồi xóa các dòng mà STATUS ≠ Active nhưng giữ lại các dòng có STATUS = Active ": Xli_P2_0, 
+            # II : 8
+            "1). Delete, move, re-order columns in Sheet2": Xli_P2_1,
+            # II : Sheet1
+            "2). In Sheet1, delete all rows duplicated and rows showing '4 56' in WDID": Xli_P2_2,
+
             "3). Cột OLD/NEW có giá trị old": Xli_P2_3,
             "4). So sánh giá trị max giữa các cơ sở": Xli_P2_4 
         }
         # menu chon ham/viec
         viec_chon = st.selectbox(
-            ":blue[Chọn hàm xử lí Phần II]", 
+            ":blue[Select the processing function Part II]", 
             (op_listCacBuocP2.keys()),
             index=None,
-            placeholder="Chua chon ham nao...",
+            placeholder="No select...",
         )
         # chay ham da chon
         if viec_chon:
             # chay ham tuong ung voi key chon_with_viec, ham nay co ten la gia tri cua key do, 
             # them () de chay ham, tham so la file excel da tai len
-            op_listCacBuocP2[viec_chon](data_tracker_upload)   # 👉 Gọi hàm tuong ung
+            op_listCacBuocP2[viec_chon](xlsx_ao_chua_3df)   # 👉 Gọi hàm tuong ung
 
         #--
         # Xu li 2 sheet txt tren data_tracker_upload append vao Data sheet
@@ -599,3 +800,9 @@ if uploaded_file:
 st.subheader('✅ IV. Visualize the data', divider=True)
 #ThucThiPhan_4()
 st.write(':red[Trình đang viết thử để chạy trên Streamlit Cloud.Chưa xong...]')
+
+WDID	APP_ID	REPORTING_YEAR	REPORT_ID	EVENT_TYPE	MONITORING_LOCATION_NAME	MONITORING_LOCATION_TYPE	MONITOR_LOCATION_DESCRIPTION	SAMPLE_ID	SAMPLE_DATE	SAMPLE_TIME	DISCHARGE_START_DATE	DISCHARGE_START_TIME	PARAMETER	RESULT_QUALIFIER	RESULT	UNITS	MDL	RL	CERTIFIER_NAME	CERTIFIED_DATE
+
+PERMIT_TYPE	WDID	APP_ID	REPORTING_YEAR	REPORT_ID	EVENT_TYPE	MONITORING_LOCATION_NAME	MONITORING_LOCATION_TYPE	MONITOR_LOCATION_DESCRIPTION	MONITORING_LATITUDE	MONITORING_LONGITUDE	SAMPLE_ID	SAMPLE_DATE	SAMPLE_TIME	DISCHARGE_START_DATE	DISCHARGE_START_TIME	PARAMETER	RESULT_QUALIFIER	RESULT	UNITS	ANALYTICAL_METHOD	MDL	RL	DISCHARGE_END_DATE	DISCHARGE_END_TIME	CERTIFIER_NAME	CERTIFIED_DATE
+PERMIT_TYPE	APP_ID	WDID	STATUS	NOI_PROCESSED_DATE	NOT_EFFECTIVE_DATE	REGION_BOARD	COUNTY	OPERATOR_NAME	FACILITY_NAME	FACILITY_ADDRESS	FACILITY_ADDRESS_2	FACILITY_CITY	FACILITY_STATE	FACILITY_ZIP	FACILITY_LATITUDE	FACILITY_LONGITUDE	FACILITY_COUNTY	FACILITY_CONTACT_FIRST_NAME	FACILITY_CONTACT_LAST_NAME	FACILITY_TITLE	FACILITY_PHONE	FACILITY_EMAIL	FACILITY_TOTAL_SIZE	FACILITY_TOTAL_SIZE_UNIT	FACILITY_AREA_ACTIVITY	FACILITY_AREA_ACTIVITY_UNIT	PERCENT_OF_SITE_IMPERVIOUSNESS	PRIMARY_SIC	SECONDARY_SIC	TERTIARY_SIC	RECEIVING_WATER_NAME	INDIRECTLY	DIRECTLY	CERTIFIER_BY	CERTIFIER_TITLE	CERTIFICATION_DATE	QUESTION_TMDL_ANSWER
+'''
