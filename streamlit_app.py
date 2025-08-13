@@ -661,19 +661,146 @@ def Xli_P2_7(F_excel_data_ao):
 
 def Xli_P2_8(F_excel_data_ao):
     dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet1")  
-    dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet2")
+    dfSheet2 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet2")
+    
+    # Xoa cột C trong Sheet2
+    dfSheet2 = dfSheet2.drop(dfSheet2.columns[2], axis=1)
 
+    # Tạo bảng tra cứu giống vùng Sheet2 từ APP_ID
+    lookup_cols = ["FACILITY_NAME", "OPERATOR_NAME", "FACILITY_ADDRESS", 
+                "FACILITY_CITY", "FACILITY_STATE", "FACILITY_ZIP"]
+
+    lookup_df = (
+        dfSheet2
+        .drop_duplicates(subset=["APP_ID"], keep="first")  # Giống VLOOKUP lấy bản ghi đầu tiên
+        .set_index("APP_ID")[lookup_cols]
+    )
+
+    # Thêm 6 cột vào trước cột "Reporting Year" và map dữ liệu
+        # Xác định vị trí cột Reporting Year
+    pos = dfSheet1.columns.get_loc("REPORTING_YEAR")
+        # Map từng cột lookup vào dfSheet1
+    for i, col in enumerate(lookup_cols, start=1):
+        dfSheet1.insert(pos + i - 1, col, dfSheet1["APP_ID"].map(lookup_df[col]))
+        # Dòng tren này tương đương việc viết công thức VLOOKUP() và kéo sang 6 cột trong Excel.
+
+    # Lưu lại Ghi cap nhat Sheet1
+    F_excel_data_ao.seek(0)  # quan trọng: để writer đọc được file hiện tại
+    with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        dfSheet1.to_excel(writer, sheet_name="Sheet1", index=False)
+        dfSheet2.to_excel(writer, sheet_name="Sheet2", index=False)
+    F_excel_data_ao.seek(0)
     return F_excel_data_ao  
+    
+    tambo='''
+    # Đặt lại tên cột theo thứ tự mong muốn
+    dfSheet2.columns = [
+        "WDID", "APP_ID", "FACILITY_NAME", "OPERATOR_NAME",
+        "FACILITY_ADDRESS", "FACILITY_CITY", "FACILITY_STATE", "FACILITY_ZIP",
+        "PRIMARY_STC", "SECONDARY_SIC", "TERTIARY_SIC"
+    ]
+	
 
+    # 2. Thêm 6 cột trống vào Sheet1 ở trước cột C (tức index 2 trong pandas)
+    for i in range(6):
+        dfSheet1.insert(2 + i, f"NewCol{i+1}", "")
+    
+    # 3. Tạo tra cứu tương đương VLOOKUP từ Sheet2
+    # Sử dụng APP_ID làm key để map dữ liệu sang 6 cột mới
+    lookup_cols = ["FACILITY_NAME", "OPERATOR_NAME", "FACILITY_ADDRESS", "FACILITY_CITY", "FACILITY_STATE", "FACILITY_ZIP"]
+    lookup_df = dfSheet2.set_index("APP_ID")[lookup_cols]
+
+    for i, col in enumerate(lookup_cols):
+        dfSheet1[f"NewCol{i+1}"] = dfSheet1["APP_ID"].map(lookup_df[col])
+    # doan tambo tren gay loi nen lay doan sau:
+    lookup_cols = ["FACILITY_NAME", "OPERATOR_NAME", "FACILITY_ADDRESS", 
+                "FACILITY_CITY", "FACILITY_STATE", "FACILITY_ZIP"]
+
+    lookup_df = (
+        dfSheet2
+        .drop_duplicates(subset=["APP_ID"], keep="first")  # giữ bản ghi đầu tiên cho mỗi APP_ID
+        .set_index("APP_ID")[lookup_cols]                  # APP_ID làm index, chỉ giữ cột cần thiết
+    )
+    st.write('(rows, cols) = ', len(lookup_df), len(lookup_df.columns))
+    st.write(dfSheet1)
+    return F_excel_data_ao
+    
+    #------------
+
+    # 4. Ghi kết quả ra file mới
+    '''
+    
 def Xli_P2_9(F_excel_data_ao):
     dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet1")  
-    dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet2")
+    dfSheet2 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet2")
+    #trong Sheet2 Xóa cột C → H, gexcePP_ID ngay ben trai PRIMARY_SIC
+    # Xóa theo vị trí (C-H = cột 2 → 7 vì Python đếm từ 0)
+    dfSheet2 = dfSheet2.drop(dfSheet2.columns[2:8], axis=1)
+    # Đảm bảo cột sau khi xóa: WDID, APP_ID, PRIMARY_SIC, SECONDARY_SIC, TERTIARY_SIC
+
+    # Trong Sheet1 – Thêm 3 cột mới ngay sau cột cuối cùng
+        # Tạo bảng tra cứu từ Sheet2
+    lookup_cols = ["PRIMARY_SIC", "SECONDARY_SIC", "TERTIARY_SIC"]
+
+    lookup_df = (
+        dfSheet2
+        .drop_duplicates(subset=["APP_ID"], keep="first")  # giống VLOOKUP lấy bản ghi đầu tiên
+        .set_index("APP_ID")[lookup_cols]
+    )
+        # Thêm 3 cột vào Sheet1 bằng map (tương đương viết công thức & kéo sang)
+    for col in lookup_cols:
+        dfSheet1[col] = dfSheet1["APP_ID"].map(lookup_df[col])
+
+    # Xóa giá trị 0 trong TERTIARY_SIC và SECONDARY_SIC
+    #Trong Excel, bước lọc “0” rồi Clear Contents thực chất là xóa tất cả giá trị bằng 0 trong cột.
+        # Xóa giá trị 0 ở TERTIARY_SIC
+    dfSheet1.loc[dfSheet1["TERTIARY_SIC"] == 0, "TERTIARY_SIC"] = None
+        # Xóa giá trị 0 ở SECONDARY_SIC
+    dfSheet1.loc[dfSheet1["SECONDARY_SIC"] == 0, "SECONDARY_SIC"] = None
+
+    if st.checkbox("View Sheet1_9", key='BCB9_S1'):
+        st.write('(rows, cols) = ', len(dfSheet1), len(dfSheet1.columns))
+        st.write(dfSheet1)
+    if st.checkbox("View Sheet2_9", key='BCB9_S2'):
+        st.write('(rows, cols) = ', len(dfSheet2), len(dfSheet2.columns))
+        st.write(dfSheet2)
+
+    # Lưu lại Ghi cap nhat vao excel
+    F_excel_data_ao.seek(0)  # quan trọng: để writer đọc được file hiện tại
+    with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        dfSheet1.to_excel(writer, sheet_name="Sheet1", index=False)
+        dfSheet2.to_excel(writer, sheet_name="Sheet2", index=False)
+    F_excel_data_ao.seek(0)
 
     return F_excel_data_ao  
 
 def Xli_P2_10(F_excel_data_ao):
-    dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet1")  
-    dfSheet1 = pd.read_excel(F_excel_data_ao, sheet_name="Sheet2")
+    dfData = pd.read_excel(F_excel_data_ao, sheet_name="Data")  
+    dfNew = pd.read_excel(F_excel_data_ao, sheet_name="Sheet1")
+    # Điền "Old" vào cột OLD/NEW cho dữ liệu cũ trong sheet Data
+        # Giả sử cột này tên là "OLD/NEW"
+    dfData["OLD/NEW"] = "Old"
+
+    # Gắn thêm dữ liệu mới từ Sheet1 vào Data
+        # Bỏ hàng header trong Sheet1 (đã loại khi đọc file)
+    df_combined = pd.concat([dfData, dfNew], ignore_index=True)
+
+    # Thêm cột OLD/NEW = "New" cho dữ liệu mới
+    # Xác định số hàng mới vừa thêm
+    num_old = len(dfData)
+    df_combined.loc[num_old:, "OLD/NEW"] = "New"
+
+    # Lưu lại Ghi cap nhat vao excel
+    F_excel_data_ao.seek(0)  # quan trọng: để writer đọc được file hiện tại
+    with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        df_combined.to_excel(writer, sheet_name="Data", index=False)
+    F_excel_data_ao.seek(0)
+
+    # Xóa Sheet1 và Sheet2 khi xuất lại (chỉ giữ sheet "Data")
+    #F_excel_data_ao.seek(0)  # quan trọng: để writer đọc được file hiện tại
+    #with pd.ExcelWriter(F_excel_data_ao) as writer:
+    #    df_combined.to_excel(writer, sheet_name="Data", index=False)
+    #F_excel_data_ao.seek(0)
 
     return F_excel_data_ao  
 
@@ -720,6 +847,9 @@ def ThucThiPhan_1():
 
 
 #========================= MAIN =====================================================================
+# global
+DACO_EXCEL_3SHEET=False
+
 # TIEU DE APP
 st.header('🏷️Trình hỗ trợ quản lý môi trường nước')
 
@@ -738,192 +868,250 @@ ThucThiPhan_1()
 
 # II Them data moi vao trinh theo doi -------------------------------------------------------------
 st.subheader('✅ II. Add the new data to your tracker', divider=True)
-# Add the new data to your tracker 
-# - Upload 3 files
-uploaded_files = st.file_uploader(
-    'Upload 1 lần 3 files: "...Industrial_Ad_Hoc...", "...Industrial_Application...", "...Data_Tracker..." ' + ' :red[(nên đặt 3 files này liền nhau trong 1 thư mục)]',
-    type=['txt', 'xlsx'],  
-    accept_multiple_files=True
-)
-if uploaded_files and len(uploaded_files) == 3:
-    # Phân loại file theo đuôi và tên
-    uploaded_f1 = next((f for f in uploaded_files if "industrial_ad_hoc" in f.name.lower()), None)
-    uploaded_f3 = next((f for f in uploaded_files if f.name.lower().endswith(".xlsx")), None)
-    # f2 là file .txt còn lại (không phải f1)
-    uploaded_f2 = next((f for f in uploaded_files if f != uploaded_f1 and f.name.lower().endswith(".txt")), None)
 
-    if uploaded_f1 and uploaded_f2 and uploaded_f3:
-        try:
-            df1 = pd.read_csv(uploaded_f1, sep='\t', encoding='cp1252')
-            df2 = pd.read_csv(uploaded_f2, sep='\t', encoding='cp1252')
-            #dfData = pd.read_excel(uploaded_f3, sheet_name="Data")  # Chỉ đọc sheet "Data"
-        except Exception as e:
-            st.error(f"⚠️ Lỗi khi đọc file: {e}")
-            st.stop()
-        #---
-        # Đọc file Excel đã upload
-        excel_data = uploaded_f3.read()
+laydatafrom = st.radio(
+    "GET DATA FROM WHERE?", 
+    [":blue[From Local]",":green[From Server]", ":red[Empty]"],
+    index=2,horizontal=True , label_visibility="visible") 
 
-        # Ghi DataFrame TXT vào file Excel đã upload
-        F_excel_data_ao = BytesIO()
-        with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl") as writer:
-            # Ghi lại các sheet cũ của file Excel gốc
-            original_excel = pd.ExcelFile(BytesIO(excel_data))
-            for sheet_name in original_excel.sheet_names:
-                df_old = pd.read_excel(original_excel, sheet_name=sheet_name)
-                df_old.to_excel(writer, sheet_name=sheet_name, index=False)
-            # Thêm / Ghi đè sheet "Sheet1" bằng dữ liệu từ file TXT
-            df1.to_excel(writer, sheet_name="Sheet1", index=False)
-            df2.to_excel(writer, sheet_name="Sheet2", index=False)
+if laydatafrom==":red[Empty]":
+    DACO_EXCEL_3SHEET=False
+    pass  
 
-        # 3. Tạo nút tải xuống
-        st.download_button(
-            label="📥 Tải file Excel (Data_tracker_add2sheet.xlsx)",
-            data=F_excel_data_ao.getvalue(),
-            file_name="Data_tracker_add2sheet.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        #--------------------------------------
-        st.write(":red[➡️ Add the new data to your tracker]")
+elif laydatafrom==":blue[From Local]":
+    # Add the new data to your tracker 
+    # - Upload 3 files
+    uploaded_files = st.file_uploader(
+        'Upload 1 lần 3 files: "...Industrial_Ad_Hoc...", "...Industrial_Application...", "...Data_Tracker..." ' + ' :red[(nên đặt 3 files này liền nhau trong 1 thư mục)]',
+        type=['txt', 'xlsx'],  
+        accept_multiple_files=True
+    )
+    if uploaded_files and len(uploaded_files) == 3:
+        # Phân loại file theo đuôi và tên
+        uploaded_f1 = next((f for f in uploaded_files if "industrial_ad_hoc" in f.name.lower()), None)
+        uploaded_f3 = next((f for f in uploaded_files if f.name.lower().endswith(".xlsx")), None)
+        # f2 là file .txt còn lại (không phải f1)
+        uploaded_f2 = next((f for f in uploaded_files if f != uploaded_f1 and f.name.lower().endswith(".txt")), None)
 
-        #checkbox1 = st.checkbox("📌:blue[1. Xóa các dòng mà STATUS ≠ 'Active' trong các dòng có APP_ID trùng lặp in Sheet2]", key='CB1')
-        checkbox1 = st.checkbox("📌:blue[1. In your data_tracker.xlsx, create Sheet1, Sheet2 contain 2 file.txt]", key='CB1')
-        if checkbox1:
-            # tra ve kq la file ao da update cung ten F_excel_data_ao 
-            F_excel_data_ao = Xli_P2_1(F_excel_data_ao) 
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_1 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_1.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_1.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+        if uploaded_f1 and uploaded_f2 and uploaded_f3:
+            try:
+                df1 = pd.read_csv(uploaded_f1, sep='\t', encoding='cp1252')
+                df2 = pd.read_csv(uploaded_f2, sep='\t', encoding='cp1252')
+                #dfData = pd.read_excel(uploaded_f3, sheet_name="Data")  # Chỉ đọc sheet "Data"
+            except Exception as e:
+                st.error(f"⚠️ Lỗi khi đọc file: {e}")
+                st.stop()
+            #---
+            # Đọc file Excel đã upload
+            excel_data = uploaded_f3.read()
 
-        #checkbox2 = st.checkbox("📌:blue[2. Delete, move, re-order columns in Sheet2]", key='CB2')
-        checkbox2 = st.checkbox("📌:blue[2. Get Sheet2 into the proper format for your tracker]", key='CB2')
-        if checkbox1 and checkbox2:
-            F_excel_data_ao = Xli_P2_2(F_excel_data_ao)
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_2 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_2.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_2.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-        #checkbox3 = st.checkbox("📌:blue[3. Delete all rows duplicated and rows showing '4 56' in WDID in Sheet1]", key='CB3')
-        checkbox3 = st.checkbox("📌:blue[3. Get Sheet1 into the proper format for your tracker]", key='CB3')
-        if checkbox1 and checkbox2 and checkbox3:
-            F_excel_data_ao = Xli_P2_3(F_excel_data_ao)
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_3 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_2.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_3.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-        checkbox4 = st.checkbox("📌:blue[4. Filter Sheet1 for only new sample data]", key='CB4')
-        if checkbox1 and checkbox2 and checkbox3 and checkbox4:
-            F_excel_data_ao = Xli_P2_4(F_excel_data_ao)
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_4 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_4.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_4.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
- 
-        checkbox5 = st.checkbox("📌:blue[5. Check if facilities in Sheet1 are active]", key='CB5')
-        if checkbox1 and checkbox2 and checkbox3 and checkbox4 and checkbox5:
-            F_excel_data_ao = Xli_P2_5(F_excel_data_ao)
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_5 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_5.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_5.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+            # Ghi DataFrame TXT vào file Excel đã upload
+            F_excel_data_ao = BytesIO()
+            with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl") as writer:
+                # Ghi lại các sheet cũ của file Excel gốc
+                original_excel = pd.ExcelFile(BytesIO(excel_data))
+                for sheet_name in original_excel.sheet_names:
+                    df_old = pd.read_excel(original_excel, sheet_name=sheet_name)
+                    df_old.to_excel(writer, sheet_name=sheet_name, index=False)
+                # Thêm / Ghi đè sheet "Sheet1" bằng dữ liệu từ file TXT
+                df1.to_excel(writer, sheet_name="Sheet1", index=False)
+                df2.to_excel(writer, sheet_name="Sheet2", index=False)
 
-        checkbox6 = st.checkbox("📌:blue[6. Choose the parameters to track in Sheet1]", key='CB6')
-        if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5 and checkbox6:
-            F_excel_data_ao = Xli_P2_6(F_excel_data_ao)
+            # 3. Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            DACO_EXCEL_3SHEET=True
+else:
+    # Đường dẫn thư mục TAM (nằm ngang với streamlit_app.py)
+    BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Datatest")
 
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_6 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_6.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_6.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+    # Tên file mong muốn
+    file_names = ["Region_1_-_North_Coast_-_Industrial_Ad_Hoc_Reports_-_Parameter_Data.txt",
+            "Region_1_-_North_Coast_-_Industrial_Application_Specific_Data.txt", 
+            "Data_Tracker_X.xlsx"]
+
+    # Danh sách đường dẫn file trên server
+    server_files = [os.path.join(BASE_DIR, name) for name in file_names]
+
+    # Kiểm tra xem tất cả file có sẵn trên server không
+    if all(os.path.exists(path) for path in server_files):
+        st.info("📂 Đang dùng file trong thư mục Datatest.")
+        #with open(server_files[0], "r", encoding="utf-8") as f1:
+        #    txt_content_f1 = f1.read()
+        #with open(server_files[1], "r", encoding="utf-8") as f2:
+        #    txt_content_f2 = f2.read()
+        df1 = pd.read_csv(server_files[0], sep='\t', encoding='cp1252')
+        df2 = pd.read_csv(server_files[1], sep='\t', encoding='cp1252')
+        #dfData = pd.read_excel(server_files[2])
+
+    else:
+        st.warning("📤 File chưa có trong Datatest, vui lòng upload.")
+        pass
+    excel_data = pd.read_excel(server_files[2])
+
+    # Lưu lại Ghi cap nhat vao excel
+    F_excel_data_ao = BytesIO()
+    with pd.ExcelWriter(F_excel_data_ao, engine="openpyxl") as writer:
+        df1.to_excel(writer, sheet_name="Sheet1", index=False)
+        df2.to_excel(writer, sheet_name="Sheet2", index=False)
+        excel_data.to_excel(writer, sheet_name="Data", index=False)
+
+    # Tạo nút tải xuống
+    st.download_button(
+        label="📥 Tải file Excel (Data_tracker_goc.xlsx)",
+        data=F_excel_data_ao.getvalue(),
+        file_name="Data_tracker_goc.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    DACO_EXCEL_3SHEET=True
+
+if DACO_EXCEL_3SHEET==True :
+    #--------------------------------------
+    st.write(":red[➡️ Add the new data to your tracker]")
+
+    #checkbox1 = st.checkbox("📌:blue[1. Xóa các dòng mà STATUS ≠ 'Active' trong các dòng có APP_ID trùng lặp in Sheet2]", key='CB1')
+    checkbox1 = st.checkbox("📌:blue[1. In your data_tracker.xlsx, create Sheet1, Sheet2 contain 2 file.txt]", key='CB1')
+    if checkbox1:
+        # tra ve kq la file ao da update cung ten F_excel_data_ao 
+        F_excel_data_ao = Xli_P2_1(F_excel_data_ao) 
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_1 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_1.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_1.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+    #checkbox2 = st.checkbox("📌:blue[2. Delete, move, re-order columns in Sheet2]", key='CB2')
+    checkbox2 = st.checkbox("📌:blue[2. Get Sheet2 into the proper format for your tracker]", key='CB2')
+    if checkbox1 and checkbox2:
+        F_excel_data_ao = Xli_P2_2(F_excel_data_ao)
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_2 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_2.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_2.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    #checkbox3 = st.checkbox("📌:blue[3. Delete all rows duplicated and rows showing '4 56' in WDID in Sheet1]", key='CB3')
+    checkbox3 = st.checkbox("📌:blue[3. Get Sheet1 into the proper format for your tracker]", key='CB3')
+    if checkbox1 and checkbox2 and checkbox3:
+        F_excel_data_ao = Xli_P2_3(F_excel_data_ao)
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_3 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_2.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_3.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    checkbox4 = st.checkbox("📌:blue[4. Filter Sheet1 for only new sample data]", key='CB4')
+    if checkbox1 and checkbox2 and checkbox3 and checkbox4:
+        F_excel_data_ao = Xli_P2_4(F_excel_data_ao)
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_4 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_4.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_4.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+    checkbox5 = st.checkbox("📌:blue[5. Check if facilities in Sheet1 are active]", key='CB5')
+    if checkbox1 and checkbox2 and checkbox3 and checkbox4 and checkbox5:
+        F_excel_data_ao = Xli_P2_5(F_excel_data_ao)
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_5 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_5.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_5.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+    checkbox6 = st.checkbox("📌:blue[6. Choose the parameters to track in Sheet1]", key='CB6')
+    if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5 and checkbox6:
+        F_excel_data_ao = Xli_P2_6(F_excel_data_ao)
+
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_6 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_6.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_6.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 
-        checkbox7 = st.checkbox("📌:blue[7. Make sure all the samples in Sheet1 are in mg/L and not ug/L]", key='CB7')
-        if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7:
-            F_excel_data_ao = Xli_P2_7(F_excel_data_ao)
+    checkbox7 = st.checkbox("📌:blue[7. Make sure all the samples in Sheet1 are in mg/L and not ug/L]", key='CB7')
+    if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7:
+        F_excel_data_ao = Xli_P2_7(F_excel_data_ao)
 
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_7 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_7.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_7.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_7 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_7.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_7.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 
-        checkbox8 = st.checkbox("📌:blue[8. Add facility information from Sheet2 into Sheet1]", key='CB8')
-        if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7 and checkbox8:
-            F_excel_data_ao = Xli_P2_8(F_excel_data_ao)
+    checkbox8 = st.checkbox("📌:blue[8. Add facility information from Sheet2 into Sheet1]", key='CB8')
+    if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7 and checkbox8:
+        F_excel_data_ao = Xli_P2_8(F_excel_data_ao)
 
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_8 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_8.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_8.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_8 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_8.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_8.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-        checkbox9 = st.checkbox("📌:blue[9. Add in SIC Codes from Sheet2 into Sheet1]", key='CB9')
-        if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7 and checkbox8  and checkbox9:
-            F_excel_data_ao = Xli_P2_9(F_excel_data_ao)
+    checkbox9 = st.checkbox("📌:blue[9. Add in SIC Codes from Sheet2 into Sheet1]", key='CB9')
+    if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7 and checkbox8  and checkbox9:
+        F_excel_data_ao = Xli_P2_9(F_excel_data_ao)
 
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_9 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_9.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_9.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_9 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_9.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_9.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-        checkbox10 = st.checkbox("📌:blue[10. Combine new data from Sheet1 into existing Data tracker]", key='CB10')
-        if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7 and checkbox8  and checkbox9:
-            F_excel_data_ao = Xli_P2_9(F_excel_data_ao)
+    checkbox10 = st.checkbox("📌:blue[10. Combine new data from Sheet1 into existing Data tracker]", key='CB10')
+    if checkbox1 and checkbox2 and checkbox3 and checkbox4  and checkbox5  and checkbox6  and checkbox7 and checkbox8  and checkbox9:
+        F_excel_data_ao = Xli_P2_10(F_excel_data_ao)
 
-            if F_excel_data_ao:
-                st.write(':green[Xli_P2_10 finished.]')
-                # Tạo nút tải xuống
-                st.download_button(
-                    label="📥 Tải file Excel (Data_tracker_add2sheet_10.xlsx)",
-                    data=F_excel_data_ao.getvalue(),
-                    file_name="Data_tracker_add2sheet_10.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+        if F_excel_data_ao:
+            st.write(':green[Xli_P2_10 finished.]')
+            # Tạo nút tải xuống
+            st.download_button(
+                label="📥 Tải file Excel (Data_tracker_add2sheet_10.xlsx)",
+                data=F_excel_data_ao.getvalue(),
+                file_name="Data_tracker_add2sheet_10.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
 
 # III Them data moi vao trinh theo doi -------------------------------------------------------------
 st.subheader('✅ III. Analyze the new data', divider=True)
