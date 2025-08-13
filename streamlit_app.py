@@ -870,7 +870,7 @@ ThucThiPhan_1()
 st.subheader('✅ II. Add the new data to your tracker', divider=True)
 
 laydatafrom = st.radio(
-    "GET DATA FROM WHERE?", 
+    "WHERE GET DATA ", 
     [":blue[From Local]",":green[From Server]", ":red[Empty]"],
     index=2,horizontal=True , label_visibility="visible") 
 
