@@ -1310,14 +1310,14 @@ with st.sidebar:
     st.write("---")
     checkbox_sidebar_1 = st.checkbox(":green[📌 Headers in Sheet1 (Industrial_Ad_Hoc_Reports)]", key='PL1', value=False)
     if checkbox_sidebar_1:
-        tep_1 = "headers/dict_sheet1.json"
+        tep_1 = "Headers/dict_sheet1.json"
         update_checkbox_sidebar(tep_1)
 
     st.write("---")
     # Xem Header Sheet2 
     checkbox_sidebar_2 = st.checkbox(":green[📌 Headers in Sheet2 (Industrial_Application_Specific_Data)]", key='PL2', value=False)
     if checkbox_sidebar_2:
-        tep_2 = "headers/dict_sheet2.json"
+        tep_2 = "Headers/dict_sheet2.json"
         update_checkbox_sidebar(tep_2)
 
 
@@ -1325,14 +1325,14 @@ with st.sidebar:
     # Xem Header Sheet3 
     checkbox_sidebar_3 = st.checkbox(":green[📌 Headers in Sheet3 (Industrial_Annual_Reports)]", key='PL3', value=False)
     if checkbox_sidebar_3:
-        tep_3 = "headers/dict_sheet3.json"
+        tep_3 = "Headers/dict_sheet3.json"
         update_checkbox_sidebar(tep_3)
 
     st.write("---")
     # Xem Header Data
     checkbox_sidebar_4 = st.checkbox(":green[📌 Headers in Data]", key='PL4', value=False)
     if checkbox_sidebar_4:
-        tep_4 = "headers/dict_data.json"
+        tep_4 = "Headers/dict_data.json"
         update_checkbox_sidebar(tep_4)
 
 
