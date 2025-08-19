@@ -1712,4 +1712,4 @@ if PHANIIIFINISHED:
 end_time = time.time()
 elapsed_time = (end_time - start_time)/60
 
-st.write(f"⏳ Time for app running: {elapsed_time:.2f} minutes")
+st.write(f"⏳ It took : {elapsed_time:.2f} minutes")
