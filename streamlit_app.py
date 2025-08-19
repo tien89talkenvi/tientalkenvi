@@ -20,6 +20,8 @@ import numpy as np
 
 import socket
 
+start_time = time.time()  # Bắt đầu tính giờ
+
 #from playwright.sync_api import sync_playwright    #playwright==1.54.0
 #--------------------------------------------------------------
 
@@ -1707,3 +1709,7 @@ if PHANIIIFINISHED:
 
     visualize_data()
 
+end_time = time.time()
+elapsed_time = (end_time - start_time)/60
+
+st.write(f"⏳ Time for app running: {elapsed_time:.2f} minutes")
