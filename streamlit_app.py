@@ -1709,7 +1709,7 @@ if PHANIIIFINISHED:
 
     visualize_data()
 
-end_time = time.time()
-elapsed_time = (end_time - start_time)/60
+    end_time = time.time()
+    elapsed_time = (end_time - start_time)/60
 
-st.write(f"⏳ It took : {elapsed_time:.2f} minutes")
+    st.write(f"⏳ It took : {elapsed_time:.2f} minutes")
