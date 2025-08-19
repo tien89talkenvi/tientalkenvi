@@ -1266,38 +1266,6 @@ st.title('🔎 Review Reported Wastewater Data')
 # Phan sider ben trai ---------------------------------------------------------------------------
 with st.sidebar:
     st.header('🏷️ :red[LOOK UP DOCUMENT]')
-    # kiem tra xem app dang chay tren local hay streamlit-cloud
-    def detect_environment():
-        """
-        Detect if app is running on local machine, server, or Streamlit Cloud.
-        Returns: str ("local", "server", "streamlit-cloud")
-        """
-        # 1. Check Streamlit Cloud
-        if "STREAMLIT_RUNTIME" in os.environ:
-            return "streamlit-cloud"
-
-        # 2. Check hostname / IP
-        try:
-            ip = socket.gethostbyname(socket.gethostname())
-            if ip.startswith("127.") or ip == "localhost":
-                return "local"
-        except:
-            pass
-
-        # 3. Check OS environment variables
-        user = os.environ.get("USER") or os.environ.get("USERNAME")
-        if user and user.lower() in ["admin", "thong", "hoang"]:  # đổi thành user local của bạn
-            return "local"
-
-        # 4. Default → assume server
-        return "local_server"
-
-
-    # --- Ví dụ dùng ---
-    env = detect_environment()
-    st.write(f"👉 App đang chạy trên: {env}")
-    #######################################
-
     # Xem tai lieu SMARTS
     st.write("---")
     checkbox_sidebar_0 = st.checkbox(":blue[📌 SMARTS documents used as a basis for writing this program]", key='PL0', value=False)
